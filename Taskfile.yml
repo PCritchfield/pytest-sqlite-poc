@@ -1,0 +1,79 @@
+version: '3'
+
+tasks:
+  build:
+    desc: Build the Docker container
+    cmds:
+      - docker-compose build
+
+  up:
+    desc: Start the development container
+    cmds:
+      - docker-compose up -d app
+
+  down:
+    desc: Stop all containers
+    cmds:
+      - docker-compose down
+
+  shell:
+    desc: Open a shell in the running container
+    cmds:
+      - docker-compose exec app bash
+
+  test:
+    desc: Run all tests
+    cmds:
+      - docker-compose run --rm test
+
+  test:specific:
+    desc: Run specific test file
+    cmds:
+      - docker-compose run --rm test pytest -v {{.CLI_ARGS}}
+
+  init-db:
+    desc: Initialize the database with schema
+    cmds:
+      - docker-compose exec app python -c "from src.database.connection import get_connection; from src.database.schema import create_tables; conn = get_connection('data/mail.db'); create_tables(conn); conn.close()"
+
+  migrate:
+    desc: Run all migrations
+    cmds:
+      - docker-compose exec app python -c "from src.database.connection import get_connection; from src.migrations.schema_migrations import SchemaMigration; conn = get_connection('data/mail.db'); migration = SchemaMigration(conn); migration.apply_migrations_from_directory('data/sql/migrations'); conn.close()"
+
+  create-sample-data:
+    desc: Create sample data in the database
+    cmds:
+      - docker-compose exec app python -c "from data.sample_data import generate_sample_data; generate_sample_data('data/mail.db')"
+
+  sqlite-shell:
+    desc: Open SQLite shell for the database
+    cmds:
+      - docker-compose exec app sqlite3 data/mail.db
+
+  clean:
+    desc: Remove all generated files
+    cmds:
+      - rm -f data/mail.db
+      - find . -type d -name "__pycache__" -exec rm -rf {} +
+      - find . -type f -name "*.pyc" -delete
+      - find . -type f -name "*.pyo" -delete
+      - find . -type f -name "*.pyd" -delete
+      - find . -type f -name ".coverage" -delete
+      - find . -type d -name "*.egg-info" -exec rm -rf {} +
+      - find . -type d -name "*.egg" -exec rm -rf {} +
+      - find . -type d -name ".pytest_cache" -exec rm -rf {} +
+      - find . -type d -name ".coverage" -exec rm -rf {} +
+      - find . -type d -name "htmlcov" -exec rm -rf {} +
+      - find . -type d -name "dist" -exec rm -rf {} +
+      - find . -type d -name "build" -exec rm -rf {} +
+
+  setup:
+    desc: Complete setup (build, start, initialize DB)
+    cmds:
+      - task: build
+      - task: up
+      - task: init-db
+      - task: migrate
+      - task: create-sample-data
+      - echo "Setup complete! Run 'task test' to run tests."
