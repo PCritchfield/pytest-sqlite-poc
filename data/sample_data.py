@@ -1,6 +1,9 @@
 """
 Sample data generation for the mail printing and stuffing database.
-This module provides functions to generate and insert sample data.
+
+This module provides functions to generate and insert sample data for testing and
+development purposes. It creates realistic test data for customers, addresses,
+mailing lists, campaigns, and other entities in the mail printing system.
 """
 import random
 import sqlite3
@@ -19,11 +22,18 @@ Faker.seed(42)
 
 def generate_sample_data(db_path: Union[str, Path], record_count: int = 5) -> None:
     """
-    Generate and insert sample data into the database.
+    Generate and insert comprehensive sample data into the database.
+
+    This function orchestrates the generation of all sample data entities,
+    ensuring proper relationships between them. It handles the entire process
+    from customer creation to delivery tracking.
 
     Args:
         db_path: Path to the SQLite database file
-        record_count: Number of records to generate for each table
+        record_count: Number of records to generate for each primary table
+
+    Raises:
+        Exception: If there's an error during data generation, the transaction is rolled back
     """
     conn = get_connection(db_path)
 
@@ -66,14 +76,17 @@ def generate_sample_data(db_path: Union[str, Path], record_count: int = 5) -> No
 
 def generate_and_insert_customers(conn: sqlite3.Connection, count: int) -> List[int]:
     """
-    Generate and insert customer data.
+    Generate and insert customer data with realistic information.
+
+    Creates customer records with fake but realistic names, email addresses,
+    and phone numbers. Each customer is assigned a unique ID by the database.
 
     Args:
-        conn: Database connection
-        count: Number of customers to generate
+        conn: SQLite database connection
+        count: Number of customer records to generate
 
     Returns:
-        List of generated customer IDs
+        List[int]: The database-assigned customer IDs for the generated customers
     """
     print(f"Generating {count} customers...")
     customers = []
@@ -98,14 +111,19 @@ def generate_and_insert_customers(conn: sqlite3.Connection, count: int) -> List[
 
 def generate_and_insert_addresses(conn: sqlite3.Connection, customer_ids: List[int]) -> List[Tuple[int, int]]:
     """
-    Generate and insert address data.
+    Generate and insert realistic address data for customers.
+
+    Creates home addresses for all customers and work addresses for some customers.
+    Addresses include street information, city, state, postal code, and country data.
+    Each address is linked to a customer and has a type (home/work).
 
     Args:
-        conn: Database connection
-        customer_ids: List of customer IDs to create addresses for
+        conn: SQLite database connection
+        customer_ids: List of customer IDs to generate addresses for
 
     Returns:
-        List of tuples containing (address_id, customer_id)
+        List[Tuple[int, int]]: List of tuples containing (address_id, customer_id) pairs
+        for all generated addresses
     """
     addresses = []
 
@@ -172,13 +190,17 @@ def generate_and_insert_addresses(conn: sqlite3.Connection, customer_ids: List[i
 
 def generate_and_insert_materials(conn: sqlite3.Connection) -> List[int]:
     """
-    Generate and insert material data.
+    Generate and insert printing material data.
+
+    Creates records for various printing materials like paper types, envelopes,
+    and ink options with realistic specifications and costs. These materials
+    are used in the printing process for mail items.
 
     Args:
-        conn: Database connection
+        conn: SQLite database connection
 
     Returns:
-        List of generated material IDs
+        List[int]: The database-assigned material IDs for the generated materials
     """
     materials = [
         {
@@ -235,14 +257,18 @@ def generate_and_insert_materials(conn: sqlite3.Connection) -> List[int]:
 
 def generate_and_insert_inventory(conn: sqlite3.Connection, material_ids: List[int]) -> List[Dict]:
     """
-    Generate and insert inventory data.
+    Generate and insert inventory data for materials.
+
+    Creates inventory records for each material with realistic quantities,
+    warehouse locations, and restock dates. This represents the current
+    stock levels of printing materials available for production.
 
     Args:
-        conn: Database connection
-        material_ids: List of material IDs to create inventory for
+        conn: SQLite database connection
+        material_ids: List of material IDs to generate inventory for
 
     Returns:
-        List of inventory entries
+        List[Dict]: List of inventory data dictionaries containing complete inventory records
     """
     inventory = []
     warehouses = ["Warehouse A", "Warehouse B", "Warehouse C"]
@@ -275,13 +301,17 @@ def generate_and_insert_inventory(conn: sqlite3.Connection, material_ids: List[i
 
 def generate_and_insert_mailing_lists(conn: sqlite3.Connection) -> List[int]:
     """
-    Generate and insert mailing list data.
+    Generate and insert mailing list data with various list types.
+
+    Creates mailing lists with different purposes (marketing, newsletter, etc.)
+    and realistic list names. These lists will be used to organize customers
+    for targeted mail campaigns.
 
     Args:
-        conn: Database connection
+        conn: SQLite database connection
 
     Returns:
-        List of generated list IDs
+        List[int]: The database-assigned list IDs for the generated mailing lists
     """
     list_types = ["Newsletter", "Promotion", "Announcement", "Update", "Special Offer"]
     departments = ["Marketing", "Sales", "Product", "Support", "Admin"]
@@ -320,16 +350,20 @@ def generate_and_insert_list_members(
     address_data: List[Tuple[int, int]],
 ) -> List[Dict]:
     """
-    Generate and insert list member data.
+    Generate and insert list member data connecting customers to mailing lists.
+
+    Associates customers with mailing lists and specifies which address to use
+    for each list membership. Each member has a status (active/inactive) and
+    join date to simulate real-world mailing list behavior.
 
     Args:
-        conn: Database connection
-        list_ids: List of mailing list IDs
-        customer_ids: List of customer IDs
-        address_data: List of (address_id, customer_id) tuples
+        conn: SQLite database connection
+        list_ids: List of mailing list IDs to populate with members
+        customer_ids: List of customer IDs available to add as members
+        address_data: List of (address_id, customer_id) tuples for address association
 
     Returns:
-        List of list member entries
+        List[Dict]: List of member data dictionaries with complete membership information
     """
     list_members = []
 
@@ -381,14 +415,18 @@ def generate_and_insert_list_members(
 
 def generate_and_insert_campaigns(conn: sqlite3.Connection, list_ids: List[int]) -> List[int]:
     """
-    Generate and insert campaign data.
+    Generate and insert marketing campaign data for mailing lists.
+
+    Creates mail marketing campaigns with realistic names, types, and date ranges.
+    Each campaign targets a specific mailing list and has a budget and status.
+    These campaigns represent planned mail distribution efforts.
 
     Args:
-        conn: Database connection
-        list_ids: List of mailing list IDs
+        conn: SQLite database connection
+        list_ids: List of mailing list IDs to associate with campaigns
 
     Returns:
-        List of generated campaign IDs
+        List[int]: The database-assigned campaign IDs for the generated campaigns
     """
     campaign_types = [
         "Newsletter",
@@ -449,15 +487,19 @@ def generate_and_insert_mail_items(
     conn: sqlite3.Connection, campaign_ids: List[int], list_members: List[Dict]
 ) -> List[int]:
     """
-    Generate and insert mail item data.
+    Generate and insert mail items for campaigns based on mailing list memberships.
+
+    Creates individual mail items that will be sent to list members as part of campaigns.
+    Each mail item is associated with a specific campaign, customer address, and has a
+    content template and status (pending, processed, cancelled).
 
     Args:
-        conn: Database connection
-        campaign_ids: List of campaign IDs
-        list_members: List of list member entries
+        conn: SQLite database connection
+        campaign_ids: List of campaign IDs to create mail items for
+        list_members: List of list member entries containing membership information
 
     Returns:
-        List of generated mail item IDs
+        List[int]: The database-assigned mail item IDs for the generated items
     """
     mail_items = []
 
@@ -518,13 +560,17 @@ def generate_and_insert_mail_items(
 
 def generate_and_insert_print_jobs(conn: sqlite3.Connection) -> List[int]:
     """
-    Generate and insert print job data.
+    Generate and insert print job data for mail processing.
+
+    Creates print job records that represent batches of mail items to be printed.
+    Each job has a name, priority level, status, and timestamps for creation and
+    completion. These jobs organize the printing workflow.
 
     Args:
-        conn: Database connection
+        conn: SQLite database connection
 
     Returns:
-        List of generated print job IDs
+        List[int]: The database-assigned job IDs for the generated print jobs
     """
     print_jobs = []
 
@@ -564,15 +610,19 @@ def generate_and_insert_print_queue(
     conn: sqlite3.Connection, job_ids: List[int], mail_item_ids: List[int]
 ) -> List[Dict]:
     """
-    Generate and insert print queue data.
+    Generate and insert print queue data connecting print jobs to mail items.
+
+    Creates print queue entries that associate mail items with print jobs and
+    specify their order and status in the printing process. This represents
+    the actual printing workflow for mail items.
 
     Args:
-        conn: Database connection
-        job_ids: List of print job IDs
-        mail_item_ids: List of mail item IDs
+        conn: SQLite database connection
+        job_ids: List of print job IDs to assign mail items to
+        mail_item_ids: List of mail item IDs to be queued for printing
 
     Returns:
-        List of print queue entries
+        List[Dict]: List of print queue entries with complete queue information
     """
     print_queue = []
 
@@ -637,14 +687,18 @@ def generate_and_insert_print_queue(
 
 def generate_and_insert_delivery_tracking(conn: sqlite3.Connection, mail_item_ids: List[int]) -> List[Dict]:
     """
-    Generate and insert delivery tracking data.
+    Generate and insert delivery tracking data for mail items.
+
+    Creates tracking records for mail items with realistic tracking numbers,
+    carrier information, shipping dates, and delivery statuses. This simulates
+    the delivery lifecycle of printed mail items after they leave the facility.
 
     Args:
-        conn: Database connection
-        mail_item_ids: List of mail item IDs
+        conn: SQLite database connection
+        mail_item_ids: List of mail item IDs to create tracking records for
 
     Returns:
-        List of delivery tracking entries
+        List[Dict]: List of tracking entries with complete delivery information
     """
     tracking_entries = []
     carriers = ["USPS", "UPS", "FedEx"]
