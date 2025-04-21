@@ -11,6 +11,7 @@ This POC demonstrates how to effectively use PyTest with SQLite for:
 3. Implementing and testing stored procedure-like functionality (using SQLite's user-defined functions and triggers)
 4. Generating realistic test data with Faker
 5. Setting up isolated test environments with in-memory databases
+6. Implementing code quality practices with linting and formatting tools
 
 ## Project Structure
 
@@ -24,7 +25,12 @@ pytest-sqlite-poc/
 │   └── sql/
 │       ├── migrations/ # SQL migration scripts
 │       └── functions/  # SQL function definitions
-└── frontend/           # Stretch goal: React frontend
+├── .flake8            # Flake8 linter configuration
+├── .pre-commit-config.yaml # Pre-commit hooks configuration
+├── CODE_QUALITY_PLAN.md # Plan for code quality improvements
+├── CONTRIBUTING.md    # Contribution guidelines
+├── pyproject.toml     # Poetry and tool configurations
+└── Taskfile.yml       # Task automation definitions
 ```
 
 ## Getting Started
@@ -115,6 +121,67 @@ pytest-sqlite-poc/
 - Poetry for dependency management
 - Docker for containerization
 - Task for workflow automation
+
+### Code Quality Tools
+
+- **Black**: Code formatter that enforces a consistent style
+- **isort**: Sorts and organizes imports
+- **Flake8**: Linter that checks for style and potential errors
+  - With flake8-docstrings for docstring style checking
+- **mypy**: Static type checker
+- **Bandit**: Security-focused linter
+- **pre-commit**: Git hooks to enforce code quality checks before commits
+
+### Code Quality
+
+This project uses several tools to maintain code quality and consistency. You can run these tools using Task commands:
+
+```bash
+# Format code with Black and isort
+task fmt
+
+# Check if code is properly formatted without making changes
+task fmt:check
+
+# Run all linters (flake8, mypy, bandit)
+task lint
+
+# Run specific linter
+task lint:flake8
+task lint:mypy
+task lint:bandit
+
+# Run all code quality checks
+task quality
+
+# Fix common issues automatically
+task fix:all
+```
+
+### Code Quality Plan
+
+We have a phased approach to improving code quality in this project:
+
+1. **Phase 1**: Basic code formatting and linting (completed)
+2. **Phase 2**: Type annotations
+3. **Phase 3**: Security improvements
+4. **Phase 4**: Docstring standardization
+5. **Phase 5**: Code complexity reduction
+
+See [CODE_QUALITY_PLAN.md](CODE_QUALITY_PLAN.md) for more details.
+```
+
+### Pre-commit Hooks
+
+To ensure code quality checks run automatically before each commit, install the pre-commit hooks:
+
+```bash
+# Inside the Docker container
+poetry run pre-commit install
+
+# Or locally if you have pre-commit installed
+pre-commit install
+```
 
 ### Installation
 

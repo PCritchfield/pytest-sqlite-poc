@@ -77,3 +77,61 @@ tasks:
       - task: migrate
       - task: create-sample-data
       - echo "Setup complete! Run 'task test' to run tests."
+
+  fmt:
+    desc: Format code with black and isort
+    cmds:
+      - poetry run black .
+      - poetry run isort .
+
+  fmt:check:
+    desc: Check if code is properly formatted without making changes
+    cmds:
+      - poetry run black --check .
+      - poetry run isort --check .
+
+  lint:
+    desc: Run all linters
+    cmds:
+      - task: lint:flake8
+      - task: lint:mypy
+      - task: lint:bandit
+
+  lint:flake8:
+    desc: Run flake8 linter
+    cmds:
+      - poetry run flake8 src tests data
+
+  lint:mypy:
+    desc: Run mypy type checker (warnings only during transition)
+    cmds:
+      - poetry run mypy --config-file pyproject.toml --follow-imports=skip --ignore-missing-imports --no-strict-optional src tests data || echo "mypy issues found - these will be addressed in a future PR"
+
+  lint:bandit:
+    desc: Run bandit security linter (warnings only during transition)
+    cmds:
+      - poetry run bandit -r src data -ll || echo "Bandit security issues found - these will be addressed in a future PR"
+
+  quality:
+    desc: Run all code quality checks
+    cmds:
+      - task: fmt:check
+      - task: lint
+
+  fix:whitespace:
+    desc: Fix trailing whitespace issues
+    cmds:
+      - find src tests data -name '*.py' -type f -exec sed -i '' 's/[[:space:]]*$//' {} \;
+
+  fix:imports:
+    desc: Fix unused imports using autoflake
+    cmds:
+      - poetry run pip install autoflake
+      - poetry run autoflake --in-place --remove-all-unused-imports --recursive src tests data
+
+  fix:all:
+    desc: Fix all auto-fixable linting issues
+    cmds:
+      - task: fix:whitespace
+      - task: fix:imports
+      - task: fmt
