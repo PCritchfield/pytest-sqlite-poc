@@ -7,9 +7,7 @@ from pathlib import Path
 from typing import Optional, Union
 
 
-def get_connection(
-    db_path: Union[str, Path], in_memory: bool = False
-) -> sqlite3.Connection:
+def get_connection(db_path: Union[str, Path], in_memory: bool = False) -> sqlite3.Connection:
     """
     Get a connection to a SQLite database.
 
@@ -51,9 +49,7 @@ def execute_script(conn: sqlite3.Connection, script_path: Union[str, Path]) -> N
     conn.commit()
 
 
-def execute_query(
-    conn: sqlite3.Connection, query: str, params: Optional[tuple] = None
-) -> list:
+def execute_query(conn: sqlite3.Connection, query: str, params: Optional[tuple] = None) -> list:
     """
     Execute a SQL query and return the results.
 

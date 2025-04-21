@@ -118,9 +118,7 @@ def test_end_to_end_mailing_process(db_with_sample_data):
         (job_id,),
     )
     queue_count = result[0]["count"]
-    assert (
-        queue_count == mail_item_count
-    ), "Print queue should have entries for all mail items"
+    assert queue_count == mail_item_count, "Print queue should have entries for all mail items"
 
     # 3. Check that the print job was marked as completed
     result = execute_query(
@@ -138,9 +136,7 @@ def test_end_to_end_mailing_process(db_with_sample_data):
         (campaign_id,),
     )
     tracking_count = result[0]["count"]
-    assert (
-        tracking_count == mail_item_count
-    ), "Tracking entries should exist for all mail items"
+    assert tracking_count == mail_item_count, "Tracking entries should exist for all mail items"
 
 
 def test_complex_query_performance(db_with_sample_data):
@@ -209,9 +205,7 @@ def test_complex_query_performance(db_with_sample_data):
 
     # Verify that the postage calculation is working
     for result in results:
-        assert (
-            result["total_postage"] > 0
-        ), "Postage calculation should return positive values"
+        assert result["total_postage"] > 0, "Postage calculation should return positive values"
 
 
 def test_transaction_rollback(db_with_sample_data):
@@ -219,14 +213,10 @@ def test_transaction_rollback(db_with_sample_data):
     Test that transactions can be rolled back to maintain data integrity.
     """
     # Get initial counts
-    result = execute_query(
-        db_with_sample_data, "SELECT COUNT(*) AS count FROM customers"
-    )
+    result = execute_query(db_with_sample_data, "SELECT COUNT(*) AS count FROM customers")
     initial_customer_count = result[0]["count"]
 
-    result = execute_query(
-        db_with_sample_data, "SELECT COUNT(*) AS count FROM addresses"
-    )
+    result = execute_query(db_with_sample_data, "SELECT COUNT(*) AS count FROM addresses")
     initial_address_count = result[0]["count"]
 
     # Start a transaction
@@ -257,35 +247,21 @@ def test_transaction_rollback(db_with_sample_data):
     )
 
     # Verify the data was inserted
-    result = execute_query(
-        db_with_sample_data, "SELECT COUNT(*) AS count FROM customers"
-    )
-    assert (
-        result[0]["count"] == initial_customer_count + 1
-    ), "Customer should be inserted"
+    result = execute_query(db_with_sample_data, "SELECT COUNT(*) AS count FROM customers")
+    assert result[0]["count"] == initial_customer_count + 1, "Customer should be inserted"
 
-    result = execute_query(
-        db_with_sample_data, "SELECT COUNT(*) AS count FROM addresses"
-    )
+    result = execute_query(db_with_sample_data, "SELECT COUNT(*) AS count FROM addresses")
     assert result[0]["count"] == initial_address_count + 1, "Address should be inserted"
 
     # Rollback the transaction
     db_with_sample_data.rollback()
 
     # Verify the data was rolled back
-    result = execute_query(
-        db_with_sample_data, "SELECT COUNT(*) AS count FROM customers"
-    )
-    assert (
-        result[0]["count"] == initial_customer_count
-    ), "Customer insert should be rolled back"
+    result = execute_query(db_with_sample_data, "SELECT COUNT(*) AS count FROM customers")
+    assert result[0]["count"] == initial_customer_count, "Customer insert should be rolled back"
 
-    result = execute_query(
-        db_with_sample_data, "SELECT COUNT(*) AS count FROM addresses"
-    )
-    assert (
-        result[0]["count"] == initial_address_count
-    ), "Address insert should be rolled back"
+    result = execute_query(db_with_sample_data, "SELECT COUNT(*) AS count FROM addresses")
+    assert result[0]["count"] == initial_address_count, "Address insert should be rolled back"
 
 
 def test_database_consistency(db_with_sample_data):

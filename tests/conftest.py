@@ -3,7 +3,7 @@ PyTest configuration and fixtures for SQLite testing.
 """
 import sqlite3
 from pathlib import Path
-from typing import Union
+from typing import Generator, Optional, Union
 
 import pytest
 
@@ -81,23 +81,13 @@ def db_with_sample_data(db_with_schema):
     yield db_connection
 
 
-def insert_sample_data(conn: sqlite3.Connection) -> None:
-    """Insert sample data into the database."""
-    # Clear any existing data first
-    tables = [
-        "delivery_tracking",
-        "print_queue",
-        "mail_items",
-        "print_jobs",
-        "mailing_campaigns",
-        "list_members",
-        "mailing_lists",
-        "inventory",
-        "materials",
-        "addresses",
-        "customers",
-    ]
+def _clear_tables(conn: sqlite3.Connection, tables: list[str]) -> None:
+    """Clear all data from the specified tables.
 
+    Args:
+        conn: SQLite database connection
+        tables: List of table names to clear
+    """
     # Disable foreign key constraints temporarily for clean deletion
     conn.execute("PRAGMA foreign_keys = OFF")
     for table in tables:
@@ -108,7 +98,16 @@ def insert_sample_data(conn: sqlite3.Connection) -> None:
     for table in tables:
         conn.execute(f"DELETE FROM sqlite_sequence WHERE name='{table}'")
 
-    # Insert customers
+
+def _insert_customers(conn: sqlite3.Connection) -> list[int]:
+    """Insert sample customer data and return their IDs.
+
+    Args:
+        conn: SQLite database connection
+
+    Returns:
+        List of customer IDs
+    """
     customers = [
         (None, "John Smith", "john.smith@example.com", "555-123-4567"),
         (None, "Jane Doe", "jane.doe@example.com", "555-234-5678"),
@@ -125,49 +124,77 @@ def insert_sample_data(conn: sqlite3.Connection) -> None:
     cursor = conn.cursor()
     cursor.execute("SELECT customer_id FROM customers")
     customer_ids = [row[0] for row in cursor.fetchall()]
+    return customer_ids
 
-    # Insert addresses
-    addresses = []
+
+def _insert_addresses(conn: sqlite3.Connection, customer_ids: list[int]) -> list[tuple[int, int]]:
+    """Insert sample address data for customers and return address data.
+
+    Args:
+        conn: SQLite database connection
+        customer_ids: List of customer IDs to create addresses for
+
+    Returns:
+        List of (address_id, customer_id) tuples
+    """
+    # Define the type for our address tuples
+    AddressTuple = tuple[Optional[int], int, str, str, Optional[str], str, str, str, str, bool]
+    addresses: list[AddressTuple] = []
     for customer_id in customer_ids:
         # Home address for every customer
-        addresses.append(
-            (
-                None,
-                customer_id,
-                "home",
-                f"{customer_id*123} Main St",
-                None,
-                "Anytown",
-                "OH",
-                f"{customer_id+10000}",
-                "USA",
-                1,
-            )
+
+        home_address = (
+            None,
+            customer_id,
+            "home",
+            f"{customer_id*123} Main St",
+            None,  # street_line2 can be None
+            "Anytown",
+            "OH",
+            f"{customer_id+10000}",
+            "USA",
+            True,
         )
+        addresses.append(home_address)
 
         # Work address for some customers
         if customer_id % 2 == 0:
-            addresses.append(
-                (
-                    None,
-                    customer_id,
-                    "work",
-                    f"{customer_id*100} Business Ave",
-                    f"Suite {customer_id*10}",
-                    "Workville",
-                    "OH",
-                    f"{customer_id+20000}",
-                    "USA",
-                    1,
-                )
+            # Using the same tuple structure as home_address
+            work_address = (
+                None,
+                customer_id,
+                "work",
+                f"{customer_id*100} Business Ave",
+                f"Suite {customer_id*10}",  # street_line2 has a value
+                "Workville",
+                "OH",
+                f"{customer_id+20000}",
+                "USA",
+                True,
             )
+            addresses.append(work_address)
 
     conn.executemany(
         "INSERT INTO addresses (address_id, customer_id, address_type, street_line1, street_line2, city, state, postal_code, country, is_verified) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         addresses,
     )
 
-    # Insert materials
+    # Get address data
+    cursor = conn.cursor()
+    cursor.execute("SELECT address_id, customer_id FROM addresses")
+    address_data = [(row[0], row[1]) for row in cursor.fetchall()]
+    return address_data
+
+
+def _insert_materials_and_inventory(conn: sqlite3.Connection) -> list[int]:
+    """Insert sample materials and inventory data.
+
+    Args:
+        conn: SQLite database connection
+
+    Returns:
+        List of material IDs
+    """
     materials = [
         (None, "Standard Envelope", "Standard #10 business envelope", 0.05, "each"),
         (None, "Large Envelope", "9x12 manila envelope", 0.15, "each"),
@@ -181,6 +208,7 @@ def insert_sample_data(conn: sqlite3.Connection) -> None:
     )
 
     # Get material IDs
+    cursor = conn.cursor()
     cursor.execute("SELECT material_id FROM materials")
     material_ids = [row[0] for row in cursor.fetchall()]
 
@@ -202,7 +230,18 @@ def insert_sample_data(conn: sqlite3.Connection) -> None:
         inventory,
     )
 
-    # Insert mailing lists
+    return material_ids
+
+
+def _insert_mailing_lists(conn: sqlite3.Connection) -> list[int]:
+    """Insert sample mailing list data and return list IDs.
+
+    Args:
+        conn: SQLite database connection
+
+    Returns:
+        List of mailing list IDs
+    """
     mailing_lists = [
         (None, "Monthly Newsletter", "Subscribers to monthly newsletter", "admin"),
         (None, "Special Offers", "Customers interested in special offers", "marketing"),
@@ -213,14 +252,21 @@ def insert_sample_data(conn: sqlite3.Connection) -> None:
         mailing_lists,
     )
 
-    # Get list IDs and address IDs
+    # Get list IDs
+    cursor = conn.cursor()
     cursor.execute("SELECT list_id FROM mailing_lists")
     list_ids = [row[0] for row in cursor.fetchall()]
+    return list_ids
 
-    cursor.execute("SELECT address_id, customer_id FROM addresses")
-    address_data = [(row[0], row[1]) for row in cursor.fetchall()]
 
-    # Insert list members
+def _insert_list_members(conn: sqlite3.Connection, list_ids: list[int], address_data: list[tuple[int, int]]) -> None:
+    """Insert sample list member data.
+
+    Args:
+        conn: SQLite database connection
+        list_ids: List of mailing list IDs
+        address_data: List of (address_id, customer_id) tuples
+    """
     list_members = []
     for list_id in list_ids:
         for i, (address_id, customer_id) in enumerate(address_data):
@@ -233,7 +279,17 @@ def insert_sample_data(conn: sqlite3.Connection) -> None:
         list_members,
     )
 
-    # Insert mailing campaigns
+
+def _insert_campaigns(conn: sqlite3.Connection, list_ids: list[int]) -> list[tuple[int, int]]:
+    """Insert sample campaign data and return campaign data.
+
+    Args:
+        conn: SQLite database connection
+        list_ids: List of mailing list IDs
+
+    Returns:
+        List of (campaign_id, list_id) tuples
+    """
     campaigns = []
     for i, list_id in enumerate(list_ids):
         start_date = f"2025-0{i+1}-01"
@@ -257,12 +313,26 @@ def insert_sample_data(conn: sqlite3.Connection) -> None:
         campaigns,
     )
 
-    # Get campaign IDs
+    # Get campaign IDs and list IDs
+    cursor = conn.cursor()
     cursor.execute("SELECT campaign_id, list_id FROM mailing_campaigns")
     campaign_data = [(row[0], row[1]) for row in cursor.fetchall()]
+    return campaign_data
 
-    # Insert mail items
+
+def _insert_mail_items(conn: sqlite3.Connection, campaign_data: list[tuple[int, int]]) -> list[int]:
+    """Insert sample mail item data and return mail item IDs.
+
+    Args:
+        conn: SQLite database connection
+        campaign_data: List of (campaign_id, list_id) tuples
+
+    Returns:
+        List of mail item IDs
+    """
     mail_items = []
+    cursor = conn.cursor()
+
     for campaign_id, list_id in campaign_data:
         # Get members of this list
         cursor.execute(
@@ -291,8 +361,16 @@ def insert_sample_data(conn: sqlite3.Connection) -> None:
     # Get mail item IDs
     cursor.execute("SELECT item_id FROM mail_items")
     mail_item_ids = [row[0] for row in cursor.fetchall()]
+    return mail_item_ids
 
-    # Insert print jobs
+
+def _insert_print_jobs_and_queue(conn: sqlite3.Connection, mail_item_ids: list[int]) -> None:
+    """Insert sample print job and print queue data.
+
+    Args:
+        conn: SQLite database connection
+        mail_item_ids: List of mail item IDs
+    """
     print_jobs = [
         (
             None,
@@ -319,6 +397,7 @@ def insert_sample_data(conn: sqlite3.Connection) -> None:
     )
 
     # Get print job IDs
+    cursor = conn.cursor()
     cursor.execute("SELECT job_id FROM print_jobs")
     job_ids = [row[0] for row in cursor.fetchall()]
 
@@ -333,6 +412,45 @@ def insert_sample_data(conn: sqlite3.Connection) -> None:
         "INSERT INTO print_queue (queue_id, job_id, item_id, print_order, status, printed_at) VALUES (?, ?, ?, ?, ?, ?)",
         print_queue,
     )
+
+
+def insert_sample_data(conn: sqlite3.Connection) -> None:
+    """Insert sample data into the database for testing.
+
+    This function orchestrates the insertion of sample data for all entities
+    in the database, creating relationships between them to simulate a realistic
+    mail printing and stuffing system.
+
+    Args:
+        conn: SQLite database connection
+    """
+    # List of tables to clear before inserting data
+    tables = [
+        "delivery_tracking",
+        "print_queue",
+        "mail_items",
+        "print_jobs",
+        "mailing_campaigns",
+        "list_members",
+        "mailing_lists",
+        "inventory",
+        "materials",
+        "addresses",
+        "customers",
+    ]
+
+    # Clear all tables first
+    _clear_tables(conn, tables)
+
+    # Insert data in the correct order to maintain relationships
+    customer_ids = _insert_customers(conn)
+    address_data = _insert_addresses(conn, customer_ids)
+    _insert_materials_and_inventory(conn)
+    list_ids = _insert_mailing_lists(conn)
+    _insert_list_members(conn, list_ids, address_data)
+    campaign_data = _insert_campaigns(conn, list_ids)
+    mail_item_ids = _insert_mail_items(conn, campaign_data)
+    _insert_print_jobs_and_queue(conn, mail_item_ids)
 
     # Commit all changes
     conn.commit()
@@ -352,17 +470,20 @@ def create_sample_data(db_path: Union[str, Path]) -> None:
     print(f"Sample data created in {db_path}")
 
 
-def generate_sample_data_for_tests(conn, record_count=3):
+def generate_sample_data_for_tests(conn: sqlite3.Connection, record_count: int = 3) -> None:
     """
     Generate sample data for tests using the connection provided by the fixture.
+
     This is a wrapper around the helper functions from sample_data.py,
-    adapted for use with in-memory databases in tests.
+    adapted for use with in-memory databases in tests. It provides a more
+    realistic dataset with randomized values compared to the static
+    insert_sample_data function.
 
     Args:
         conn: SQLite connection (in-memory)
         record_count: Number of records to generate (smaller for faster tests)
     """
-    # Clear any existing data first
+    # Reuse the table clearing function we created earlier
     tables = [
         "delivery_tracking",
         "print_queue",
@@ -377,15 +498,8 @@ def generate_sample_data_for_tests(conn, record_count=3):
         "customers",
     ]
 
-    # Disable foreign key constraints temporarily for clean deletion
-    conn.execute("PRAGMA foreign_keys = OFF")
-    for table in tables:
-        conn.execute(f"DELETE FROM {table}")
-    conn.execute("PRAGMA foreign_keys = ON")
-
-    # Reset auto-increment counters
-    for table in tables:
-        conn.execute(f"DELETE FROM sqlite_sequence WHERE name='{table}'")
+    # Clear all tables first
+    _clear_tables(conn, tables)
 
     # Import the helper functions from sample_data.py
     from data.sample_data import (
@@ -403,16 +517,13 @@ def generate_sample_data_for_tests(conn, record_count=3):
     )
 
     try:
-        # Generate and insert data for each entity type
-        # We use a smaller record count for faster test execution
+        # Generate and insert data for each entity type in the correct dependency order
         customer_ids = generate_and_insert_customers(conn, record_count)
         address_data = generate_and_insert_addresses(conn, customer_ids)
         material_ids = generate_and_insert_materials(conn)
         generate_and_insert_inventory(conn, material_ids)
         list_ids = generate_and_insert_mailing_lists(conn)
-        list_members = generate_and_insert_list_members(
-            conn, list_ids, customer_ids, address_data
-        )
+        list_members = generate_and_insert_list_members(conn, list_ids, customer_ids, address_data)
         campaign_ids = generate_and_insert_campaigns(conn, list_ids)
         mail_item_ids = generate_and_insert_mail_items(conn, campaign_ids, list_members)
         job_ids = generate_and_insert_print_jobs(conn)
@@ -426,43 +537,52 @@ def generate_sample_data_for_tests(conn, record_count=3):
         raise e
 
 
-def create_sample_data_legacy(db_path):
+def create_sample_data_legacy(db_path: Union[str, Path]) -> None:
     """
     Create a database with sample data for external use.
+
     This function is maintained for backward compatibility but now uses
-    the sample_data.py module's generate_sample_data function.
+    the sample_data.py module's generate_sample_data function. It provides
+    a simpler interface for creating sample data in a file-based database
+    rather than an in-memory database.
 
     Args:
-        db_path: Path to the SQLite database file
+        db_path: Path to the SQLite database file (string or Path object)
+
+    Returns:
+        None: The function creates the database file with sample data as a side effect
     """
     # Import here to avoid circular imports
     from data.sample_data import generate_sample_data as gen_sample_data
+
+    # Generate the sample data using the imported function
     gen_sample_data(db_path)
     print(f"Sample data created in {db_path}")
 
 
-@pytest.fixture(scope="function")
-def migration_db():
-    """
-    Create an in-memory SQLite database for testing migrations.
-    """
-    # Create in-memory database
-    conn = get_connection(":memory:", in_memory=True)
+def _insert_migration_test_customers(conn: sqlite3.Connection) -> None:
+    """Insert minimal customer data needed for migration tests.
 
-    # Create initial schema
-    create_tables(conn)
-
-    # Insert minimal data needed for migration tests
+    Args:
+        conn: SQLite database connection
+    """
     customers = [
         (1, "John Smith", "john.smith@example.com", "555-123-4567"),
-        (2, "Jane Doe", "jane.doe@example.com", None),  # Missing phone
+        (2, "Jane Doe", "jane.doe@example.com", None),  # Missing phone - used to test migrations
     ]
     conn.executemany(
         "INSERT INTO customers (customer_id, name, email, phone) VALUES (?, ?, ?, ?)",
         customers,
     )
 
-    # Insert addresses with mixed-case states
+
+def _insert_migration_test_addresses(conn: sqlite3.Connection) -> None:
+    """Insert address data with mixed-case states for migration tests.
+
+    Args:
+        conn: SQLite database connection
+    """
+    # Insert addresses with mixed-case states - used to test case normalization migrations
     addresses = [
         (1, 1, "home", "123 Main St", None, "Anytown", "oh", "12345", "USA", 1),
         (2, 2, "home", "789 Residential Rd", None, "Hometown", "Oh", "23456", "USA", 1),
@@ -472,6 +592,29 @@ def migration_db():
         addresses,
     )
 
+
+@pytest.fixture(scope="function")
+def migration_db() -> Generator[sqlite3.Connection, None, None]:
+    """Create an in-memory SQLite database for testing migrations.
+
+    This fixture creates a minimal database with specific test data designed
+    to test migration functionality. It includes customers with missing data
+    and addresses with mixed-case states to verify normalization migrations.
+
+    Yields:
+        sqlite3.Connection: An in-memory SQLite database connection with test data
+    """
+    # Create in-memory database
+    conn = get_connection(":memory:", in_memory=True)
+
+    # Create initial schema
+    create_tables(conn)
+
+    # Insert minimal test data for migrations
+    _insert_migration_test_customers(conn)
+    _insert_migration_test_addresses(conn)
+
+    # Yield the connection to the test
     yield conn
 
     # Close connection after test

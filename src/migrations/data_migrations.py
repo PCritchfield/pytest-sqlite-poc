@@ -3,11 +3,29 @@ Data migration utilities for SQLite.
 This module provides functions to transform and migrate data within the database.
 """
 import json
+import re
 import sqlite3
 from pathlib import Path
 from typing import List, Optional, Union
 
 from src.database.connection import execute_query
+
+
+def _is_valid_identifier(identifier: str) -> bool:
+    """
+    Validate that a string is a valid SQL identifier (table or column name).
+    This helps prevent SQL injection when dynamic table/column names are used.
+
+    Args:
+        identifier: The string to validate
+
+    Returns:
+        bool: True if the identifier is valid, False otherwise
+    """
+    # SQL identifiers should only contain alphanumeric chars, underscores
+    # and shouldn't start with a number
+    pattern = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]*$")
+    return bool(pattern.match(identifier))
 
 
 class DataMigration:
@@ -52,9 +70,7 @@ class DataMigration:
         cursor.close()
         return migrations
 
-    def apply_migration(
-        self, migration_id: str, migration_func, description: Optional[str] = None
-    ) -> bool:
+    def apply_migration(self, migration_id: str, migration_func, description: Optional[str] = None) -> bool:
         """
         Apply a single data migration using a Python function.
 
@@ -155,10 +171,14 @@ def merge_duplicate_customers(conn: sqlite3.Connection) -> None:
             ("mail_items", "customer_id"),
         ]:
             for dup_id in duplicate_ids:
-                conn.execute(
-                    f"UPDATE {table} SET {fk_column} = ? WHERE {fk_column} = ?",
-                    (primary_id, dup_id),
-                )
+                # For dynamic table and column names, we need to validate them first
+                # to prevent SQL injection
+                if not _is_valid_identifier(table) or not _is_valid_identifier(fk_column):
+                    raise ValueError(f"Invalid table or column name: {table}, {fk_column}")
+
+                # Now we can safely construct the query with validated identifiers
+                query = f"UPDATE {table} SET {fk_column} = ? WHERE {fk_column} = ?"
+                conn.execute(query, (primary_id, dup_id))
 
         # Delete the duplicate customer records
         for dup_id in duplicate_ids:
@@ -187,9 +207,7 @@ def update_price_calculations(conn: sqlite3.Connection) -> None:
     conn.commit()
 
 
-def import_data_from_json(
-    conn: sqlite3.Connection, json_file: Union[str, Path], table: str
-) -> int:
+def import_data_from_json(conn: sqlite3.Connection, json_file: Union[str, Path], table: str) -> int:
     """
     Import data from a JSON file into a table.
 
@@ -219,11 +237,21 @@ def import_data_from_json(
     cursor = conn.cursor()
     count = 0
 
+    # Validate table name to prevent SQL injection
+    if not _is_valid_identifier(table):
+        raise ValueError(f"Invalid table name: {table}")
+
+    # Validate column names to prevent SQL injection
+    for column in columns:
+        if not _is_valid_identifier(column):
+            raise ValueError(f"Invalid column name: {column}")
+
+    # Now we can safely construct the query with validated identifiers
+    query = f"INSERT INTO {table} ({columns_str}) VALUES ({placeholders})"
+
     for record in data:
         values = [record.get(col) for col in columns]
-        cursor.execute(
-            f"INSERT INTO {table} ({columns_str}) VALUES ({placeholders})", values
-        )
+        cursor.execute(query, values)
         count += 1
 
     conn.commit()

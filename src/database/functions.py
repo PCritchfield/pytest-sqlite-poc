@@ -111,9 +111,7 @@ def generate_tracking(carrier_code: str) -> str:
 
 
 class BatchCounter:
-    """
-    SQLite aggregate function to count items in a batch with custom logic.
-    """
+    """SQLite aggregate function to count items in a batch with custom logic."""
 
     def __init__(self):
         self.count = 0

@@ -27,9 +27,7 @@ def test_tables_exist(db_connection):
     """Test that all expected tables are created in the database."""
     # Get list of all tables
     cursor = db_connection.cursor()
-    cursor.execute(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
-    )
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")
     tables = [row[0] for row in cursor.fetchall()]
     cursor.close()
 
@@ -71,9 +69,7 @@ def test_sample_data_import(db_with_sample_data):
     customer = result[0]
     assert "name" in customer and customer["name"], "Customer should have a name"
     assert "email" in customer and customer["email"], "Customer should have an email"
-    assert (
-        "phone" in customer and customer["phone"]
-    ), "Customer should have a phone number"
+    assert "phone" in customer and customer["phone"], "Customer should have a phone number"
     assert "@" in customer["email"], "Email should be in valid format"
 
     # Check that email addresses are unique
@@ -159,9 +155,7 @@ def test_multiple_table_relationships(db_with_sample_data):
     """
 
     campaign_results = execute_query(db_with_sample_data, query_campaign)
-    assert (
-        len(campaign_results) > 0
-    ), "Should have at least one campaign with mail items"
+    assert len(campaign_results) > 0, "Should have at least one campaign with mail items"
 
     campaign_id = campaign_results[0]["campaign_id"]
 
@@ -184,6 +178,4 @@ def test_multiple_table_relationships(db_with_sample_data):
         assert result["name"] is not None, "Customer name should not be null"
         assert result["city"] is not None, "City should not be null"
         assert result["state"] is not None, "State should not be null"
-        assert (
-            result["content_template"] is not None
-        ), "Content template should not be null"
+        assert result["content_template"] is not None, "Content template should not be null"

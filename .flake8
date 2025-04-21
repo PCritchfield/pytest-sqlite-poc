@@ -9,7 +9,18 @@ per-file-ignores =
     __init__.py:F401,D104,W391
     # Allow migrations to have long lines and docstring issues
     src/migrations/*.py:E501,D100,D101,D102,D103,D104,D105,D106,D107,D200,D201,D202,D203,D204,D205,D206,D207,D208,D209,D210,D211,D212,D213,D214,D215,D300,D301,D302,D400,D401,D402,D403,D404,D405,D406,D407,D408,D409,D410,D411,D412,D413,D414,D415,D416,D417
-    # Temporarily ignore docstring issues in all files
-    *.py:D100,D101,D102,D103,D104,D105,D106,D107,D200,D205,D212,D415
+    # Gradually enforce docstring standards
+    # D100: Missing docstring in public module
+    # D101: Missing docstring in public class
+    # D102: Missing docstring in public method
+    # D103: Missing docstring in public function
+    # We'll enforce these standards in phases
+    *.py:D100,D101,D102,D103,D104,D105,D106,D107
 docstring-convention = google
 max-complexity = 10
+# Docstring style configuration
+# We're using Google style docstrings but allowing some flexibility during the transition
+# D212 and D213 are mutually exclusive - we're standardizing on D213 style
+# D205 requires a blank line between summary and description
+# D415 requires first line to end with period
+ignore = E203, W503, D212, D205, D415
