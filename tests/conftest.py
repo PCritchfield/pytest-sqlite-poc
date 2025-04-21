@@ -3,7 +3,7 @@ PyTest configuration and fixtures for SQLite testing.
 """
 import sqlite3
 from pathlib import Path
-from typing import Union
+from typing import Optional, Union
 
 import pytest
 
@@ -127,40 +127,42 @@ def insert_sample_data(conn: sqlite3.Connection) -> None:
     customer_ids = [row[0] for row in cursor.fetchall()]
 
     # Insert addresses
-    addresses = []
+    # Define the type for our address tuples
+    AddressTuple = tuple[Optional[int], int, str, str, Optional[str], str, str, str, str, int]
+    addresses: list[AddressTuple] = []
     for customer_id in customer_ids:
         # Home address for every customer
-        addresses.append(
-            (
-                None,
-                customer_id,
-                "home",
-                f"{customer_id*123} Main St",
-                None,
-                "Anytown",
-                "OH",
-                f"{customer_id+10000}",
-                "USA",
-                1,
-            )
+
+        home_address = (
+            None,
+            customer_id,
+            "home",
+            f"{customer_id*123} Main St",
+            None,  # street_line2 can be None
+            "Anytown",
+            "OH",
+            f"{customer_id+10000}",
+            "USA",
+            1,
         )
+        addresses.append(home_address)
 
         # Work address for some customers
         if customer_id % 2 == 0:
-            addresses.append(
-                (
-                    None,
-                    customer_id,
-                    "work",
-                    f"{customer_id*100} Business Ave",
-                    f"Suite {customer_id*10}",
-                    "Workville",
-                    "OH",
-                    f"{customer_id+20000}",
-                    "USA",
-                    1,
-                )
+            # Using the same tuple structure as home_address
+            work_address = (
+                None,
+                customer_id,
+                "work",
+                f"{customer_id*100} Business Ave",
+                f"Suite {customer_id*10}",  # street_line2 has a value
+                "Workville",
+                "OH",
+                f"{customer_id+20000}",
+                "USA",
+                1,
             )
+            addresses.append(work_address)
 
     conn.executemany(
         "INSERT INTO addresses (address_id, customer_id, address_type, street_line1, street_line2, city, state, postal_code, country, is_verified) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",

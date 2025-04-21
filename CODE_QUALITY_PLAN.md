@@ -23,12 +23,17 @@ We've configured these tools with temporary leniency to allow for a gradual impr
 - ✅ Fix trailing whitespace
 - ✅ Fix unused imports
 
-### Phase 2: Type Annotations (Next)
-- Add type annotations to function parameters and return values
-- Focus on:
-  - `data/sample_data.py` - Add type annotations for dictionaries
-  - `tests/conftest.py` - Fix tuple type mismatches
-  - Add type hints to all public functions
+### Phase 2: Type Annotations (In Progress)
+- ✅ Add type annotations to dictionaries in `data/sample_data.py`
+- ✅ Fix tuple type mismatches in `tests/conftest.py`
+- ✅ Create custom type definitions for complex data structures
+- 🔄 Add type hints to all public functions (ongoing)
+
+Completed improvements:
+- Added `dict[int, list[int]]` and `dict[int, list[dict]]` type annotations to dictionaries
+- Created an `AddressTuple` type definition to clarify expected tuple structure
+- Fixed type inconsistencies between home and work address tuples
+- Added proper imports for typing modules
 
 ### Phase 3: Security Improvements
 - Address Bandit security warnings:

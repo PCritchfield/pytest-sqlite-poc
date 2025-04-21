@@ -350,7 +350,7 @@ def generate_and_insert_list_members(
     list_members = []
 
     # Create a mapping of customer_id to address_ids for easier lookup
-    customer_to_addresses = {}
+    customer_to_addresses: dict[int, list[int]] = {}
     for address_id, customer_id in address_data:
         if customer_id not in customer_to_addresses:
             customer_to_addresses[customer_id] = []
@@ -485,7 +485,7 @@ def generate_and_insert_mail_items(
     mail_items = []
 
     # Group list members by list_id for easier lookup
-    members_by_list = {}
+    members_by_list: dict[int, list[dict]] = {}
     for member in list_members:
         list_id = member["list_id"]
         if list_id not in members_by_list:
