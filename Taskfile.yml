@@ -22,14 +22,32 @@ tasks:
       - docker-compose exec app bash
 
   test:
-    desc: Run all tests
+    desc: Run all tests with SQLite
     cmds:
       - docker-compose run --rm test
 
   test:specific:
-    desc: Run specific test file
+    desc: Run specific test file with SQLite
     cmds:
       - docker-compose run --rm test pytest -v {{.CLI_ARGS}}
+      
+  test:postgres:
+    desc: Run all tests with PostgreSQL
+    cmds:
+      - docker-compose run --rm test-postgres
+
+  test:postgres:specific:
+    desc: Run specific test file with PostgreSQL
+    cmds:
+      - docker-compose run --rm test-postgres pytest -v {{.CLI_ARGS}}
+      
+  test:multi-db:
+    desc: Run tests with both SQLite and PostgreSQL
+    cmds:
+      - echo "Running tests with SQLite..."
+      - docker-compose run --rm test
+      - echo "Running tests with PostgreSQL..."
+      - docker-compose run --rm test-postgres
 
   init-db:
     desc: Initialize the database with schema
