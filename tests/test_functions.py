@@ -30,9 +30,7 @@ def test_calculate_postage_function(db_connection):
     ]
 
     for weight, zone, expected in test_cases:
-        result = execute_query(
-            db_connection, "SELECT calculate_postage(?, ?) AS postage", (weight, zone)
-        )
+        result = execute_query(db_connection, "SELECT calculate_postage(?, ?) AS postage", (weight, zone))
 
         # Allow for small floating-point differences
         assert (
@@ -66,13 +64,9 @@ def test_validate_address_function(db_connection):
     ]
 
     for address_json, expected in test_cases:
-        result = execute_query(
-            db_connection, "SELECT validate_address(?) AS is_valid", (address_json,)
-        )
+        result = execute_query(db_connection, "SELECT validate_address(?) AS is_valid", (address_json,))
 
-        assert (
-            result[0]["is_valid"] == expected
-        ), f"Address validation for {address_json} should return {expected}"
+        assert result[0]["is_valid"] == expected, f"Address validation for {address_json} should return {expected}"
 
 
 def test_generate_tracking_function(db_connection):
@@ -81,9 +75,7 @@ def test_generate_tracking_function(db_connection):
     carriers = ["USPS", "UPS", "FEDEX", "DHL"]
 
     for carrier in carriers:
-        result = execute_query(
-            db_connection, "SELECT generate_tracking(?) AS tracking", (carrier,)
-        )
+        result = execute_query(db_connection, "SELECT generate_tracking(?) AS tracking", (carrier,))
 
         tracking = result[0]["tracking"]
 
@@ -99,26 +91,20 @@ def test_generate_tracking_function(db_connection):
             assert tracking.endswith("FX"), "FedEx tracking should end with FX"
         else:
             assert tracking.startswith("TRK"), "Generic tracking should start with TRK"
-            assert tracking.endswith(
-                carrier.upper()[:2]
-            ), f"Generic tracking should end with {carrier.upper()[:2]}"
+            assert tracking.endswith(carrier.upper()[:2]), f"Generic tracking should end with {carrier.upper()[:2]}"
 
 
 def test_batch_counter_aggregate(db_connection):
     """Test the BatchCounter aggregate function."""
     # Create test data
-    db_connection.execute(
-        "CREATE TABLE test_batch (id INTEGER PRIMARY KEY, value TEXT)"
-    )
+    db_connection.execute("CREATE TABLE test_batch (id INTEGER PRIMARY KEY, value TEXT)")
     db_connection.executemany(
         "INSERT INTO test_batch (value) VALUES (?)",
         [("Item 1",), ("Item 2",), (None,), ("",), ("Item 3",)],
     )
 
     # Test the aggregate function
-    result = execute_query(
-        db_connection, "SELECT batch_count(value) AS count FROM test_batch"
-    )
+    result = execute_query(db_connection, "SELECT batch_count(value) AS count FROM test_batch")
 
     # Should count only non-empty values
     assert result[0]["count"] == 3, "BatchCounter should count 3 non-empty values"
@@ -147,9 +133,7 @@ def test_triggers(db_with_sample_data):
     assert result[0]["name"] == "John Smith Jr.", "Name should be updated"
 
     # Verify the timestamp format is as expected (not testing exact value)
-    assert (
-        len(result[0]["updated_at"]) > 10
-    ), "Timestamp should be a valid datetime string"
+    assert len(result[0]["updated_at"]) > 10, "Timestamp should be a valid datetime string"
 
 
 def test_print_job_completion_trigger(db_with_sample_data):
@@ -176,13 +160,10 @@ def test_print_job_completion_trigger(db_with_sample_data):
         job_id = db_with_sample_data.execute("SELECT last_insert_rowid()").fetchone()[0]
 
         # Create at least one print queue item for this job
-        mail_items = execute_query(
-            db_with_sample_data, "SELECT item_id FROM mail_items LIMIT 1"
-        )
+        mail_items = execute_query(db_with_sample_data, "SELECT item_id FROM mail_items LIMIT 1")
         if mail_items:
             db_with_sample_data.execute(
-                "INSERT INTO print_queue (job_id, item_id, print_order, status) "
-                "VALUES (?, ?, 1, 'queued')",
+                "INSERT INTO print_queue (job_id, item_id, print_order, status) " "VALUES (?, ?, 1, 'queued')",
                 (job_id, mail_items[0]["item_id"]),
             )
             db_with_sample_data.commit()
@@ -195,9 +176,7 @@ def test_print_job_completion_trigger(db_with_sample_data):
         f"SELECT status, completed_date FROM print_jobs WHERE job_id = {job_id}",
     )
     assert result[0]["status"] == "queued", "Job status should be queued"
-    assert (
-        result[0]["completed_date"] is None
-    ), "Completed date should be NULL initially"
+    assert result[0]["completed_date"] is None, "Completed date should be NULL initially"
 
     # Update all queue items to completed
     db_with_sample_data.execute(
@@ -210,9 +189,7 @@ def test_print_job_completion_trigger(db_with_sample_data):
         db_with_sample_data,
         f"SELECT status, completed_date FROM print_jobs WHERE job_id = {job_id}",
     )
-    assert (
-        result[0]["status"] == "completed"
-    ), "Job status should be updated to completed"
+    assert result[0]["status"] == "completed", "Job status should be updated to completed"
     assert result[0]["completed_date"] is not None, "Completed date should be set"
 
 
@@ -248,6 +225,4 @@ def test_sql_function_file(db_connection, tmp_path):
     db_connection.rollback()  # No need to commit
 
     # Verify the function returned the expected result
-    assert result[0] == 5.00 + (2.5 * 2.0) + (
-        100 * 0.1
-    ), "Function should calculate shipping cost correctly"
+    assert result[0] == 5.00 + (2.5 * 2.0) + (100 * 0.1), "Function should calculate shipping cost correctly"

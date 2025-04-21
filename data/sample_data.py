@@ -34,15 +34,11 @@ def generate_sample_data(db_path: Union[str, Path], record_count: int = 5) -> No
         material_ids = generate_and_insert_materials(conn)
         generate_and_insert_inventory(conn, material_ids)
         list_ids = generate_and_insert_mailing_lists(conn)
-        list_members = generate_and_insert_list_members(
-            conn, list_ids, customer_ids, address_data
-        )
+        list_members = generate_and_insert_list_members(conn, list_ids, customer_ids, address_data)
         campaign_ids = generate_and_insert_campaigns(conn, list_ids)
         mail_item_ids = generate_and_insert_mail_items(conn, campaign_ids, list_members)
         job_ids = generate_and_insert_print_jobs(conn)
-        print_queue_entries = generate_and_insert_print_queue(
-            conn, job_ids, mail_item_ids
-        )
+        print_queue_entries = generate_and_insert_print_queue(conn, job_ids, mail_item_ids)
         tracking_entries = generate_and_insert_delivery_tracking(conn, mail_item_ids)
 
         # Commit all changes
@@ -83,9 +79,7 @@ def generate_and_insert_customers(conn: sqlite3.Connection, count: int) -> List[
     customers = []
 
     for _ in range(count):
-        customers.append(
-            {"name": fake.name(), "email": fake.email(), "phone": fake.phone_number()}
-        )
+        customers.append({"name": fake.name(), "email": fake.email(), "phone": fake.phone_number()})
 
     # Insert customers
     cursor = conn.cursor()
@@ -102,9 +96,7 @@ def generate_and_insert_customers(conn: sqlite3.Connection, count: int) -> List[
     return customer_ids
 
 
-def generate_and_insert_addresses(
-    conn: sqlite3.Connection, customer_ids: List[int]
-) -> List[Tuple[int, int]]:
+def generate_and_insert_addresses(conn: sqlite3.Connection, customer_ids: List[int]) -> List[Tuple[int, int]]:
     """
     Generate and insert address data.
 
@@ -124,9 +116,7 @@ def generate_and_insert_addresses(
                 "customer_id": customer_id,
                 "address_type": "home",
                 "street_line1": fake.street_address(),
-                "street_line2": None
-                if fake.boolean(chance_of_getting_true=70)
-                else fake.secondary_address(),
+                "street_line2": None if fake.boolean(chance_of_getting_true=70) else fake.secondary_address(),
                 "city": fake.city(),
                 "state": fake.state_abbr(),
                 "postal_code": fake.zipcode(),
@@ -142,9 +132,7 @@ def generate_and_insert_addresses(
                     "customer_id": customer_id,
                     "address_type": "work",
                     "street_line1": fake.street_address(),
-                    "street_line2": fake.secondary_address()
-                    if fake.boolean(chance_of_getting_true=60)
-                    else None,
+                    "street_line2": fake.secondary_address() if fake.boolean(chance_of_getting_true=60) else None,
                     "city": fake.city(),
                     "state": fake.state_abbr(),
                     "postal_code": fake.zipcode(),
@@ -245,9 +233,7 @@ def generate_and_insert_materials(conn: sqlite3.Connection) -> List[int]:
     return material_ids
 
 
-def generate_and_insert_inventory(
-    conn: sqlite3.Connection, material_ids: List[int]
-) -> List[Dict]:
+def generate_and_insert_inventory(conn: sqlite3.Connection, material_ids: List[int]) -> List[Dict]:
     """
     Generate and insert inventory data.
 
@@ -267,9 +253,7 @@ def generate_and_insert_inventory(
                 "material_id": material_id,
                 "quantity": random.randint(500, 5000),
                 "location": random.choice(warehouses),
-                "last_restock_date": fake.date_between(
-                    start_date="-30d", end_date="today"
-                ).strftime("%Y-%m-%d"),
+                "last_restock_date": fake.date_between(start_date="-30d", end_date="today").strftime("%Y-%m-%d"),
             }
         )
 
@@ -365,10 +349,7 @@ def generate_and_insert_list_members(
 
         for customer_id in selected_customers:
             # Choose a random address for this customer
-            if (
-                customer_id in customer_to_addresses
-                and customer_to_addresses[customer_id]
-            ):
+            if customer_id in customer_to_addresses and customer_to_addresses[customer_id]:
                 address_id = random.choice(customer_to_addresses[customer_id])
 
                 list_members.append(
@@ -398,9 +379,7 @@ def generate_and_insert_list_members(
     return list_members
 
 
-def generate_and_insert_campaigns(
-    conn: sqlite3.Connection, list_ids: List[int]
-) -> List[int]:
+def generate_and_insert_campaigns(conn: sqlite3.Connection, list_ids: List[int]) -> List[int]:
     """
     Generate and insert campaign data.
 
@@ -424,9 +403,7 @@ def generate_and_insert_campaigns(
     for i in range(min(len(list_ids) * 2, 5)):  # Create up to 5 campaigns
         # Generate random dates
         start_date = fake.date_between(start_date="-10d", end_date="+20d")
-        end_date = fake.date_between(
-            start_date=start_date, end_date=start_date + timedelta(days=30)
-        )
+        end_date = fake.date_between(start_date=start_date, end_date=start_date + timedelta(days=30))
 
         campaign_type = random.choice(campaign_types)
         list_id = random.choice(list_ids)
@@ -502,18 +479,14 @@ def generate_and_insert_mail_items(
         if list_id and list_id in members_by_list:
             # Create mail items for members of this list
             for member in members_by_list[list_id]:
-                if (
-                    member["status"] == "active"
-                ):  # Only create mail items for active members
+                if member["status"] == "active":  # Only create mail items for active members
                     mail_items.append(
                         {
                             "campaign_id": campaign_id,
                             "customer_id": member["customer_id"],
                             "address_id": member["address_id"],
                             "content_template": f"template_{campaign_id}",
-                            "status": random.choice(
-                                ["pending", "processed", "cancelled"]
-                            )
+                            "status": random.choice(["pending", "processed", "cancelled"])
                             if fake.boolean(chance_of_getting_true=20)
                             else "pending",
                         }
@@ -610,11 +583,7 @@ def generate_and_insert_print_queue(
         for i, job_id in enumerate(job_ids):
             # Get a slice of mail items for this job
             start_idx = i * items_per_job
-            end_idx = (
-                start_idx + items_per_job
-                if i < len(job_ids) - 1
-                else len(mail_item_ids)
-            )
+            end_idx = start_idx + items_per_job if i < len(job_ids) - 1 else len(mail_item_ids)
             job_items = mail_item_ids[start_idx:end_idx]
 
             for order, item_id in enumerate(job_items, 1):
@@ -666,9 +635,7 @@ def generate_and_insert_print_queue(
     return print_queue
 
 
-def generate_and_insert_delivery_tracking(
-    conn: sqlite3.Connection, mail_item_ids: List[int]
-) -> List[Dict]:
+def generate_and_insert_delivery_tracking(conn: sqlite3.Connection, mail_item_ids: List[int]) -> List[Dict]:
     """
     Generate and insert delivery tracking data.
 
@@ -684,9 +651,7 @@ def generate_and_insert_delivery_tracking(
     statuses = ["pending", "shipped", "delivered", "returned"]
 
     # Create tracking entries for some mail items (60-80%)
-    num_items = random.randint(
-        int(len(mail_item_ids) * 0.6), int(len(mail_item_ids) * 0.8)
-    )
+    num_items = random.randint(int(len(mail_item_ids) * 0.6), int(len(mail_item_ids) * 0.8))
     selected_items = random.sample(mail_item_ids, k=min(num_items, len(mail_item_ids)))
 
     for item_id in selected_items:
@@ -695,9 +660,9 @@ def generate_and_insert_delivery_tracking(
 
         # Calculate delivery dates based on shipped date
         delivery_date = (
-            fake.date_time_between(
-                start_date=datetime.strptime(shipped_date, "%Y-%m-%d"), end_date="+5d"
-            ).strftime("%Y-%m-%d")
+            fake.date_time_between(start_date=datetime.strptime(shipped_date, "%Y-%m-%d"), end_date="+5d").strftime(
+                "%Y-%m-%d"
+            )
             if fake.boolean(chance_of_getting_true=60)
             else None
         )

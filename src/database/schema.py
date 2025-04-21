@@ -249,9 +249,7 @@ def drop_tables(conn: sqlite3.Connection) -> None:
     conn.commit()
 
 
-def export_schema_to_file(
-    conn: sqlite3.Connection, output_path: Union[str, Path]
-) -> None:
+def export_schema_to_file(conn: sqlite3.Connection, output_path: Union[str, Path]) -> None:
     """
     Export the current database schema to a SQL file.
 
@@ -263,15 +261,14 @@ def export_schema_to_file(
 
     # Get schema for all tables
     cursor = conn.cursor()
-    cursor.execute(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
-    )
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")
     tables = cursor.fetchall()
 
     with open(output_path, "w") as f:
         for table in tables:
             table_name = table[0]
-            cursor.execute(f"SELECT sql FROM sqlite_master WHERE name = '{table_name}'")
+            # Use parameterized query to prevent SQL injection
+            cursor.execute("SELECT sql FROM sqlite_master WHERE name = ?", (table_name,))
             create_statement = cursor.fetchone()[0]
             f.write(f"{create_statement};\n\n")
 

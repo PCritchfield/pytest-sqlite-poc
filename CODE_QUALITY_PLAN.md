@@ -35,11 +35,17 @@ Completed improvements:
 - Fixed type inconsistencies between home and work address tuples
 - Added proper imports for typing modules
 
-### Phase 3: Security Improvements
-- Address Bandit security warnings:
-  - Replace `random` with more appropriate alternatives where needed
-  - Fix SQL injection vulnerabilities by using parameterized queries
-  - Document cases where `random` is acceptable for non-security purposes
+### Phase 3: Security Improvements (In Progress)
+- ✅ Fix SQL injection vulnerabilities by using parameterized queries
+- ✅ Add validation for dynamic table and column names
+- 🔄 Replace `random` with more appropriate alternatives where needed (ongoing)
+- 🔄 Document cases where `random` is acceptable for non-security purposes (ongoing)
+
+Completed improvements:
+- Added parameterized query in schema.py to prevent SQL injection
+- Created `_is_valid_identifier()` utility function to validate SQL identifiers
+- Added validation checks before constructing dynamic SQL queries
+- Reduced Bandit security warnings from 3 Medium/Medium confidence to 2 Medium/Low confidence issues
 
 ### Phase 4: Docstring Standardization
 - Standardize docstring format (Google style)

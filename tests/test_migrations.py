@@ -5,12 +5,7 @@ from pathlib import Path
 
 from src.database.connection import execute_query
 from src.migrations.data_migrations import DataMigration, transform_addresses
-from src.migrations.schema_migrations import (
-    SchemaMigration,
-    add_column,
-    create_index,
-    rename_table,
-)
+from src.migrations.schema_migrations import SchemaMigration, add_column, create_index, rename_table
 
 
 def test_add_column_migration(migration_db):
@@ -21,9 +16,7 @@ def test_add_column_migration(migration_db):
     columns = [row[1] for row in cursor.fetchall()]
     cursor.close()
 
-    assert (
-        "contact_preference" not in columns
-    ), "Column should not exist before migration"
+    assert "contact_preference" not in columns, "Column should not exist before migration"
 
     # Add the column
     add_column(migration_db, "customers", "contact_preference", "TEXT DEFAULT 'email'")
@@ -37,9 +30,7 @@ def test_add_column_migration(migration_db):
     assert "contact_preference" in columns, "Column should exist after migration"
 
     # Verify the default value is set
-    result = execute_query(
-        migration_db, "SELECT contact_preference FROM customers LIMIT 1"
-    )
+    result = execute_query(migration_db, "SELECT contact_preference FROM customers LIMIT 1")
     assert result[0]["contact_preference"] == "email", "Default value should be 'email'"
 
 
@@ -47,9 +38,7 @@ def test_rename_table_migration(migration_db):
     """Test renaming a table."""
     # Verify the original table exists
     cursor = migration_db.cursor()
-    cursor.execute(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name='mailing_lists'"
-    )
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='mailing_lists'")
     exists = cursor.fetchone() is not None
     cursor.close()
 
@@ -60,14 +49,10 @@ def test_rename_table_migration(migration_db):
 
     # Verify the table was renamed
     cursor = migration_db.cursor()
-    cursor.execute(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name='contact_lists'"
-    )
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='contact_lists'")
     new_exists = cursor.fetchone() is not None
 
-    cursor.execute(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name='mailing_lists'"
-    )
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='mailing_lists'")
     old_exists = cursor.fetchone() is not None
     cursor.close()
 
@@ -79,9 +64,7 @@ def test_create_index_migration(migration_db):
     """Test creating an index on a table."""
     # Verify the index doesn't exist yet
     cursor = migration_db.cursor()
-    cursor.execute(
-        "SELECT name FROM sqlite_master WHERE type='index' AND name='idx_customers_name'"
-    )
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='index' AND name='idx_customers_name'")
     exists = cursor.fetchone() is not None
     cursor.close()
 
@@ -92,9 +75,7 @@ def test_create_index_migration(migration_db):
 
     # Verify the index was created
     cursor = migration_db.cursor()
-    cursor.execute(
-        "SELECT name FROM sqlite_master WHERE type='index' AND name='idx_customers_name'"
-    )
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='index' AND name='idx_customers_name'")
     exists = cursor.fetchone() is not None
     cursor.close()
 
@@ -108,9 +89,7 @@ def test_schema_migration_tracking(migration_db):
 
     # Verify the migrations table exists
     cursor = migration_db.cursor()
-    cursor.execute(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name='schema_migrations'"
-    )
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='schema_migrations'")
     exists = cursor.fetchone() is not None
     cursor.close()
 
@@ -152,9 +131,7 @@ def test_data_migration(migration_db):
 
     # Verify the data migrations table exists
     cursor = migration_db.cursor()
-    cursor.execute(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name='data_migrations'"
-    )
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='data_migrations'")
     exists = cursor.fetchone() is not None
     cursor.close()
 
@@ -162,9 +139,7 @@ def test_data_migration(migration_db):
 
     # Check initial state - states should be mixed case
     results = execute_query(migration_db, "SELECT state FROM addresses")
-    assert any(
-        r["state"] != r["state"].upper() for r in results
-    ), "States should be mixed case initially"
+    assert any(r["state"] != r["state"].upper() for r in results), "States should be mixed case initially"
 
     # Apply the data migration
     result = migration_manager.apply_migration(
@@ -176,9 +151,7 @@ def test_data_migration(migration_db):
 
     # Verify the data was transformed
     results = execute_query(migration_db, "SELECT state FROM addresses")
-    assert all(
-        r["state"] == r["state"].upper() for r in results
-    ), "All states should be uppercase after migration"
+    assert all(r["state"] == r["state"].upper() for r in results), "All states should be uppercase after migration"
 
     # Verify the migration was recorded
     applied = migration_manager.get_applied_migrations()
@@ -221,9 +194,7 @@ def test_multiple_migrations(migration_db, tmp_path):
 
     # First migration
     with open(migration_dir / "001_add_contact_preference.sql", "w") as f:
-        f.write(
-            "ALTER TABLE customers ADD COLUMN contact_preference TEXT DEFAULT 'email';"
-        )
+        f.write("ALTER TABLE customers ADD COLUMN contact_preference TEXT DEFAULT 'email';")
 
     # Second migration
     with open(migration_dir / "002_add_priority.sql", "w") as f:

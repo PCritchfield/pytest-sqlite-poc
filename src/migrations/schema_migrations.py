@@ -52,9 +52,7 @@ class SchemaMigration:
         cursor.close()
         return migrations
 
-    def apply_migration(
-        self, migration_path: Union[str, Path], description: Optional[str] = None
-    ) -> bool:
+    def apply_migration(self, migration_path: Union[str, Path], description: Optional[str] = None) -> bool:
         """
         Apply a single migration from a SQL file.
 
@@ -109,13 +107,7 @@ class SchemaMigration:
         directory_path = Path(directory_path)
 
         # Get all SQL files in the directory
-        migration_files = sorted(
-            [
-                f
-                for f in directory_path.glob("*.sql")
-                if re.match(r"^\d+_.*\.sql$", f.name)
-            ]
-        )
+        migration_files = sorted([f for f in directory_path.glob("*.sql") if re.match(r"^\d+_.*\.sql$", f.name)])
 
         # Get already applied migrations
         applied = self.get_applied_migrations()
@@ -164,9 +156,7 @@ class SchemaMigration:
             execute_script(self.conn, rollback_path)
 
             # Remove the migration record
-            self.conn.execute(
-                "DELETE FROM schema_migrations WHERE migration_id = ?", (migration_id,)
-            )
+            self.conn.execute("DELETE FROM schema_migrations WHERE migration_id = ?", (migration_id,))
 
             # Commit the transaction
             self.conn.commit()
@@ -178,9 +168,7 @@ class SchemaMigration:
             raise RuntimeError(f"Rollback failed: {str(e)}")
 
 
-def add_column(
-    conn: sqlite3.Connection, table: str, column: str, definition: str
-) -> None:
+def add_column(conn: sqlite3.Connection, table: str, column: str, definition: str) -> None:
     """
     Add a column to an existing table.
 

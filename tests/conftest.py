@@ -412,9 +412,7 @@ def generate_sample_data_for_tests(conn, record_count=3):
         material_ids = generate_and_insert_materials(conn)
         generate_and_insert_inventory(conn, material_ids)
         list_ids = generate_and_insert_mailing_lists(conn)
-        list_members = generate_and_insert_list_members(
-            conn, list_ids, customer_ids, address_data
-        )
+        list_members = generate_and_insert_list_members(conn, list_ids, customer_ids, address_data)
         campaign_ids = generate_and_insert_campaigns(conn, list_ids)
         mail_item_ids = generate_and_insert_mail_items(conn, campaign_ids, list_members)
         job_ids = generate_and_insert_print_jobs(conn)
@@ -439,6 +437,7 @@ def create_sample_data_legacy(db_path):
     """
     # Import here to avoid circular imports
     from data.sample_data import generate_sample_data as gen_sample_data
+
     gen_sample_data(db_path)
     print(f"Sample data created in {db_path}")
 
