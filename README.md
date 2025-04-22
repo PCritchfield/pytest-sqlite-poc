@@ -197,6 +197,64 @@ poetry run pytest
 - Schema and data migration testing
 - SQLite user-defined functions and triggers testing
 - Integration testing across multiple tables
+- Complex stored procedures with branching logic (PostgreSQL)
+
+## Complex Stored Procedures
+
+This project includes a demonstration of complex chained stored procedures with branching logic for the mail processing workflow. These procedures are only available when testing with PostgreSQL.
+
+```mermaid
+flowchart TD
+    A[process_campaign] --> B{Is campaign active?}
+    B -->|No| C[Skip & Log]
+    B -->|Yes| D{Is priority campaign?}
+    D -->|Yes| E[process_priority_mail]
+    D -->|No| F[process_standard_mail]
+    
+    E --> G[Update mail items status]
+    F --> H[Update mail items status]
+    
+    G --> I[assign_to_print_job]
+    H --> J[assign_to_print_job]
+    
+    I --> K[schedule_delivery]
+    J --> L[schedule_delivery]
+    
+    K --> M[Express Delivery
+Same-day printing]
+    L --> N[Standard Post
+Next-day printing]
+    
+    M --> O[Update campaign status]
+    N --> O
+    
+    %% Audit logging happens throughout
+    P[Audit Logging] -.-> A
+    P -.-> E
+    P -.-> F
+    P -.-> O
+```
+
+### Procedure Descriptions
+
+| Procedure | Description |
+|-----------|-------------|
+| `process_campaign` | Main entry point that processes a campaign based on its ID. Determines if the campaign is active and whether it's a priority campaign. |
+| `process_priority_mail` | Handles urgent mailings with same-day printing and expedited delivery. Updates mail items to 'processing' status. |
+| `process_standard_mail` | Handles regular mailings with next-day printing and standard delivery. Updates mail items to 'processing' status. |
+| `assign_to_print_job` | Creates print jobs and adds items to the print queue with appropriate scheduling. |
+| `schedule_delivery` | Sets up delivery tracking with different carriers based on priority (Express vs Standard). |
+
+### Testing Complex Procedures
+
+The complex procedures are tested in `tests/test_complex_procedures.py`, which verifies:
+
+- Standard campaign processing flow
+- Priority campaign processing flow
+- Handling of inactive campaigns
+- Error handling for invalid campaign IDs
+
+These tests demonstrate how to test complex database logic that spans multiple procedures with different execution paths.
 
 ## Stretch Goal
 
